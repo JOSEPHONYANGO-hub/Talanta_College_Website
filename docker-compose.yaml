@@ -1,0 +1,51 @@
+# Talanta College of Technology - WordPress on Coolify
+# Build pack: Docker Compose. Coolify generates the SERVICE_* values automatically.
+services:
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_WORDPRESS_80
+      - WORDPRESS_DB_HOST=mariadb
+      - WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME:-wordpress}
+      - WORDPRESS_DB_USER=${SERVICE_USER_WORDPRESS}
+      - WORDPRESS_DB_PASSWORD=${SERVICE_PASSWORD_WORDPRESS}
+      # Change this if the old site's database used a custom table prefix
+      - WORDPRESS_TABLE_PREFIX=${WORDPRESS_TABLE_PREFIX:-wp_}
+      - WORDPRESS_CONFIG_EXTRA=define('FS_METHOD', 'direct');
+    volumes:
+      # Media library survives redeploys; theme/plugin code comes from git
+      - wp-uploads:/var/www/html/wp-content/uploads
+      # All-in-One WP Migration import/export files
+      - wp-ai1wm-backups:/var/www/html/wp-content/ai1wm-backups
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1/wp-includes/images/blank.gif"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      - MARIADB_ROOT_PASSWORD=${SERVICE_PASSWORD_ROOT}
+      - MARIADB_DATABASE=${WORDPRESS_DB_NAME:-wordpress}
+      - MARIADB_USER=${SERVICE_USER_WORDPRESS}
+      - MARIADB_PASSWORD=${SERVICE_PASSWORD_WORDPRESS}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  wp-uploads:
+  wp-ai1wm-backups:
+  mariadb-data:

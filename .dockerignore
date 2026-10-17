@@ -1,0 +1,10 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yaml
+.env
+wp-config.php
+wp-content/uploads
+wp-content/ai1wm-backups/*.wpress
+error_log
